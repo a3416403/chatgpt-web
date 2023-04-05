@@ -9,6 +9,7 @@ import axios from 'axios'
 import { sendResponse } from '../utils'
 import { isNotEmptyString } from '../utils/is'
 import type { ApiModel, ChatContext, ChatGPTUnofficialProxyAPIOptions, ModelConfig } from '../types'
+import config from '../../config/index'
 import type { RequestOptions } from './types'
 
 const { HttpsProxyAgent } = httpsProxyAgent
@@ -24,12 +25,12 @@ const ErrorCodeMessage: Record<string, string> = {
   500: '[OpenAI] 服务器繁忙，请稍后再试 | Internal Server Error',
 }
 
-const timeoutMs: number = !isNaN(+process.env.TIMEOUT_MS) ? +process.env.TIMEOUT_MS : 30 * 1000
-const disableDebug: boolean = process.env.OPENAI_API_DISABLE_DEBUG === 'true'
+const timeoutMs: number = !isNaN(+config.TIMEOUT_MS) ? +config.TIMEOUT_MS : 30 * 1000
+const disableDebug: boolean = config.OPENAI_API_DISABLE_DEBUG === 'true'
 
 let apiModel: ApiModel
 
-if (!isNotEmptyString(process.env.OPENAI_API_KEY) && !isNotEmptyString(process.env.OPENAI_ACCESS_TOKEN))
+if (!isNotEmptyString(config.OPENAI_API_KEY) && !isNotEmptyString(config.OPENAI_ACCESS_TOKEN))
   throw new Error('Missing OPENAI_API_KEY or OPENAI_ACCESS_TOKEN environment variable')
 
 let api: ChatGPTAPI | ChatGPTUnofficialProxyAPI
@@ -37,13 +38,13 @@ let api: ChatGPTAPI | ChatGPTUnofficialProxyAPI
 (async () => {
   // More Info: https://github.com/transitive-bullshit/chatgpt-api
 
-  if (isNotEmptyString(process.env.OPENAI_API_KEY)) {
-    const OPENAI_API_BASE_URL = process.env.OPENAI_API_BASE_URL
-    const OPENAI_API_MODEL = process.env.OPENAI_API_MODEL
+  if (isNotEmptyString(config.OPENAI_API_KEY)) {
+    const OPENAI_API_BASE_URL = config.OPENAI_API_BASE_URL
+    const OPENAI_API_MODEL = config.OPENAI_API_MODEL
     const model = isNotEmptyString(OPENAI_API_MODEL) ? OPENAI_API_MODEL : 'gpt-3.5-turbo'
 
     const options: ChatGPTAPIOptions = {
-      apiKey: process.env.OPENAI_API_KEY,
+      apiKey: config.OPENAI_API_KEY,
       completionParams: { model },
       debug: !disableDebug,
     }
@@ -70,16 +71,16 @@ let api: ChatGPTAPI | ChatGPTUnofficialProxyAPI
     apiModel = 'ChatGPTAPI'
   }
   else {
-    const OPENAI_API_MODEL = process.env.OPENAI_API_MODEL
+    const OPENAI_API_MODEL = config.OPENAI_API_MODEL
     const options: ChatGPTUnofficialProxyAPIOptions = {
-      accessToken: process.env.OPENAI_ACCESS_TOKEN,
+      accessToken: config.OPENAI_ACCESS_TOKEN,
       debug: !disableDebug,
     }
     if (isNotEmptyString(OPENAI_API_MODEL))
       options.model = OPENAI_API_MODEL
 
-    if (isNotEmptyString(process.env.API_REVERSE_PROXY))
-      options.apiReverseProxyUrl = process.env.API_REVERSE_PROXY
+    if (isNotEmptyString(config.API_REVERSE_PROXY))
+      options.apiReverseProxyUrl = config.API_REVERSE_PROXY
 
     setupProxy(options)
 
@@ -124,8 +125,8 @@ async function chatReplyProcess(options: RequestOptions) {
 }
 
 async function fetchBalance() {
-  const OPENAI_API_KEY = process.env.OPENAI_API_KEY
-  const OPENAI_API_BASE_URL = process.env.OPENAI_API_BASE_URL
+  const OPENAI_API_KEY = config.OPENAI_API_KEY
+  const OPENAI_API_BASE_URL = config.OPENAI_API_BASE_URL
 
   if (!isNotEmptyString(OPENAI_API_KEY))
     return Promise.resolve('-')
@@ -147,10 +148,10 @@ async function fetchBalance() {
 
 async function chatConfig() {
   const balance = await fetchBalance()
-  const reverseProxy = process.env.API_REVERSE_PROXY ?? '-'
-  const httpsProxy = (process.env.HTTPS_PROXY || process.env.ALL_PROXY) ?? '-'
-  const socksProxy = (process.env.SOCKS_PROXY_HOST && process.env.SOCKS_PROXY_PORT)
-    ? (`${process.env.SOCKS_PROXY_HOST}:${process.env.SOCKS_PROXY_PORT}`)
+  const reverseProxy = config.API_REVERSE_PROXY ?? '-'
+  const httpsProxy = (config.HTTPS_PROXY || config.ALL_PROXY) ?? '-'
+  const socksProxy = (config.SOCKS_PROXY_HOST && config.SOCKS_PROXY_PORT)
+    ? (`${config.SOCKS_PROXY_HOST}:${config.SOCKS_PROXY_PORT}`)
     : '-'
   return sendResponse<ModelConfig>({
     type: 'Success',
@@ -159,20 +160,20 @@ async function chatConfig() {
 }
 
 function setupProxy(options: ChatGPTAPIOptions | ChatGPTUnofficialProxyAPIOptions) {
-  if (isNotEmptyString(process.env.SOCKS_PROXY_HOST) && isNotEmptyString(process.env.SOCKS_PROXY_PORT)) {
+  if (isNotEmptyString(config.SOCKS_PROXY_HOST) && isNotEmptyString(config.SOCKS_PROXY_PORT)) {
     const agent = new SocksProxyAgent({
-      hostname: process.env.SOCKS_PROXY_HOST,
-      port: process.env.SOCKS_PROXY_PORT,
-      userId: isNotEmptyString(process.env.SOCKS_PROXY_USERNAME) ? process.env.SOCKS_PROXY_USERNAME : undefined,
-      password: isNotEmptyString(process.env.SOCKS_PROXY_PASSWORD) ? process.env.SOCKS_PROXY_PASSWORD : undefined,
+      hostname: config.SOCKS_PROXY_HOST,
+      port: config.SOCKS_PROXY_PORT,
+      userId: isNotEmptyString(config.SOCKS_PROXY_USERNAME) ? config.SOCKS_PROXY_USERNAME : undefined,
+      password: isNotEmptyString(config.SOCKS_PROXY_PASSWORD) ? config.SOCKS_PROXY_PASSWORD : undefined,
     })
     options.fetch = (url, options) => {
       return fetch(url, { agent, ...options })
     }
   }
   else {
-    if (isNotEmptyString(process.env.HTTPS_PROXY) || isNotEmptyString(process.env.ALL_PROXY)) {
-      const httpsProxy = process.env.HTTPS_PROXY || process.env.ALL_PROXY
+    if (isNotEmptyString(config.HTTPS_PROXY) || isNotEmptyString(config.ALL_PROXY)) {
+      const httpsProxy = config.HTTPS_PROXY || config.ALL_PROXY
       if (httpsProxy) {
         const agent = new HttpsProxyAgent(httpsProxy)
         options.fetch = (url, options) => {
