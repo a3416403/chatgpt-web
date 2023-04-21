@@ -1,5 +1,5 @@
 export default {
-  OPENAI_API_KEY: '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',
+  OPENAI_API_KEY: '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',
   OPENAI_API_MODEL: 'gpt-3.5-turbo',
   TIMEOUT_MS: 100000,
   OPENAI_API_DISABLE_DEBUG: 'true',
