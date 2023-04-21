@@ -18,7 +18,9 @@ app.all('*', (_, res, next) => {
   res.header('Access-Control-Allow-Methods', '*')
   next()
 })
-
+router.get('/status', auth, async (req, res) => {
+  res.send({status:'ok'})
+})
 router.post('/chat-process', [auth, limiter], async (req, res) => {
   res.setHeader('Content-type', 'application/octet-stream')
 
