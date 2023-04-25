@@ -32,6 +32,13 @@ export default defineConfig((env) => {
       },
     },
     plugins: setupPlugins(viteEnv),
+    css: {
+      preprocessorOptions: {
+        less: {
+          javascriptEnabled: true, // 设置为true
+        },
+      },
+    },
     server: {
       host: '0.0.0.0',
       port: 1002,
